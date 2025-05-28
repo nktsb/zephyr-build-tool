@@ -10,6 +10,61 @@ import json
 PYTHON = "python" if sys.platform == "win32" else "python3"
 RUN_ENV_SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 
+def check_tool(tool_name, install_instruction):
+    if shutil.which(tool_name):
+        print(f"✅ {tool_name} is installed")
+        return True
+    else:
+        print(f"❌ {tool_name} is not installed. Install it using:\n{install_instruction}")
+        return False
+
+def check_dependencies():
+
+    dependencies = []
+
+    if sys.platform == "Linux":
+        dependencies = [
+            ("git", "sudo apt install git"),
+            ("cmake", "sudo apt install cmake"),
+            ("ninja", "sudo apt install ninja-build"),
+            ("ccache", "sudo apt install ccache"),
+            ("dtc", "sudo apt install device-tree-compiler"),
+            ("wget", "sudo apt install wget"),
+            ("openocd", "sudo apt install openocd"),
+            ("clang-format", "sudo apt install clang-format"),
+        ]
+    elif sys.platform == "Darwin":  # macOS
+        dependencies = [
+            ("git", "brew install git"),
+            ("cmake", "brew install cmake"),
+            ("ninja", "brew install ninja"),
+            ("ccache", "brew install ccache"),
+            ("dtc", "brew install dtc"),
+            ("wget", "brew install wget"),
+            ("openocd", "brew install openocd"),
+        ]
+    elif sys.platform == "Windows":
+        dependencies = [
+            ("git", "winget install Git.Git"),
+            ("python", "winget install python"),
+            ("cmake", "winget install Kitware.CMake"),
+            ("ninja", "winget install Ninja-build.Ninja"),
+            ("dtc", "winget install oss-winget.dtc"),
+            ("wget", "winget install wget"),
+            ("7z", "winget install 7zip.7zip"),
+        ]
+
+    all_installed = True
+    for tool, instruction in dependencies:
+        if not check_tool(tool, instruction):
+            print(f"❌ Missing {tool}. Please install it and try again.")
+            all_installed = False
+
+    if not all_installed:
+        sys.exit(1)
+
+    print("✅ All dependencies are installed.")
+
 def run_command_in_venv(venv_path, 
                         command, 
                         zephyr_env=None, 
@@ -267,6 +322,9 @@ if __name__ == "__main__":
     toolchain_path = settings_json["toolchain_path"]
 
     build_path = settings_json["build_path"]
+
+    # STEP 0: chech dependencies
+    check_dependencies()
 
     # STEP 1: create/check .venv
     ensure_venv(venv_path, extra_requirements_path)
