@@ -1,0 +1,308 @@
+import argparse
+import subprocess
+import os
+import re
+import sys
+import venv
+import shutil
+import json
+
+PYTHON = "python" if sys.platform == "win32" else "python3"
+RUN_ENV_SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
+
+def run_command_in_venv(venv_path, 
+                        command, 
+                        zephyr_env=None, 
+                        env=os.environ.copy()):
+
+    if sys.platform == "win32":
+        venv_activate_path = os.path.join(venv_path, "Scripts", "activate.bat")
+        if (zephyr_env != None):
+            zephyr_activate_path = os.path.join(zephyr_env, "zephyr", "zephyr-env.cmd")
+            activate_command = f"{venv_activate_path} && {zephyr_activate_path}"
+        else:
+            activate_command = f"{venv_activate_path}"
+
+        command_str = f"cmd /c \"{activate_command} && {command}\""
+
+    else:
+        venv_activate_path = os.path.join(venv_path, "bin", "activate")
+        if (zephyr_env != None):
+            zephyr_activate_path = os.path.join(zephyr_env, "zephyr", "zephyr-env.sh")
+            activate_command = f"source {venv_activate_path} && source {zephyr_activate_path}"
+        else:
+            activate_command = f"source {venv_activate_path}"
+
+        command_str = f"bash -c '{activate_command} && {command}'"
+
+    try:
+        subprocess.run(command_str, shell=True, check=True, env=env)
+        return True
+    except:
+        return False
+
+
+def run_script_in_venv(venv_path, 
+                       zephyr_env_path, 
+                       script_path, 
+                       script_args=None, 
+                       env=os.environ.copy()):
+
+    if script_args is None:
+        script_args = []
+
+    command_list = [PYTHON, script_path] + script_args
+    command = " ".join(command_list)
+    res = run_command_in_venv(venv_path, command, zephyr_env_path, env)
+    if res == False:
+        sys.exit(1)
+
+
+def ensure_venv(venv_path, extra_requirements_path=None):
+    if not os.path.exists(venv_path):
+        print(f"📦 Initializing Python virtual environment {venv_path}...\n")
+        venv.create(venv_path, with_pip=True)
+
+        requirements_path = os.path.join(RUN_ENV_SCRIPT_PATH, "requirements.txt")
+
+        command = f"pip install -r {requirements_path}"
+        if extra_requirements_path is not None:
+            command += f" -r {extra_requirements_path}"
+
+        res = run_command_in_venv(venv_path, command)
+        
+        if res == True:
+            print(f"🏁 Python virtual environment installed\n")
+        else:
+            shutil.rmtree(venv_path)
+            print("❌ Python .venv setup failed\n")
+    else:
+        print(f"✅ Python virtual envirornment check")
+
+
+def ensure_dotenv(company_name,
+                  project_name, 
+                  dotenv_path,
+                  venv_path,
+                  zephyr_env_path,
+                  toolchain_path,
+                  zephyr_sdk_dir_name,
+                  app_path,
+                  zephyr_boards_path,
+                  build_path,
+        ):
+
+    abs_zephyr_boards = os.path.abspath(zephyr_boards_path)
+    abs_app_path = os.path.abspath(app_path)
+    abs_venv_path = os.path.abspath(venv_path)
+    abs_zephyr_env_path = os.path.abspath(zephyr_env_path)
+    abs_toolchain_path = os.path.abspath(toolchain_path)
+    abs_build_path = os.path.abspath(build_path)
+    abs_zephyr_sdk_path = os.path.join(abs_toolchain_path, zephyr_sdk_dir_name)
+
+    if os.path.exists(dotenv_path):
+        print(f"✅ .env file check")
+        return
+
+    print("📦 Initalizing .env\n")
+
+    env_vars = {
+        "COMPANY_NAME": company_name,
+        "PROJECT_NAME": project_name,
+        "ZEPHYR_BOARD_ROOT": abs_zephyr_boards,
+        "PYTHON_VENV": abs_venv_path,
+        "ZEPHYR_ENV": abs_zephyr_env_path,
+        "APP_PATH": abs_app_path,
+        "TOOLCHAIN_PATH": abs_toolchain_path,
+        "ZEPHYR_SDK_PATH": abs_zephyr_sdk_path,
+        "ZEPHYR_TOOLCHAIN_VARIANT": "zephyr",
+        "BUILD_DIR": abs_build_path
+    }
+
+    with open(dotenv_path, "w") as f:
+        for key, value in env_vars.items():
+            f.write(f"{key}={value}\n")
+
+    print(f"📝 Created .env with default values:")
+    for k, v in env_vars.items():
+        print(f"\t{k}={v}")
+    print(f"🏁 Initialized .env\n")
+
+
+def ensure_zephyr_env(venv_path,
+                      zephyr_env_path,
+                      nrf_sdk_url,
+                      nrf_sdk_version):
+
+    if not os.path.exists(zephyr_env_path):
+        print("📦 Initializing Zephyr virtual environment...\n")
+
+        env = os.environ.copy()
+        env.pop("ZEPHYR_BASE", None)
+
+        res = run_command_in_venv(venv_path, f"mkdir {zephyr_env_path} && "
+                f"cd {zephyr_env_path} && "
+                f"west init -m {nrf_sdk_url} --mr {nrf_sdk_version} "
+                f"&& west update", env=env)
+        
+        if res == True:
+            print("🏁 Zephyr & nRF-SDK installed!\n")
+        else:
+            shutil.rmtree(zephyr_env_path)
+            print("❌ Zephyr environment setup failed\n")
+
+    else:
+        print(f"✅ Zephyr virtual envirornment check")
+
+
+def ensure_toolchain(venv_path, 
+                     zephyr_env_path, 
+                     toolchain_path, 
+                     zephyr_sdk_dir_name):
+
+    if not os.path.exists(toolchain_path):
+        print("📦 Initializing toolchain...\n")
+
+        env = os.environ.copy()
+        env.pop("ZEPHYR_SDK_INSTALL_DIR", None)
+        env.pop("ZEPHYR_TOOLCHAIN_VARIANT", None)
+
+        os.makedirs(toolchain_path)
+
+        zephyr_sdk_path = os.path.join(toolchain_path, zephyr_sdk_dir_name)
+        abs_zephyr_sdk_path = os.path.abspath(zephyr_sdk_path)
+    
+        res = run_command_in_venv(venv_path, f"west sdk install --install-dir "
+                f"{abs_zephyr_sdk_path} --toolchains arm-zephyr-eabi --no-hosttools", 
+                zephyr_env_path, env)
+
+        if res == True:
+            print("🏁 Toolchain installed\n")
+        else:
+            print("❌ Toolchain setup failed\n")
+            shutil.rmtree(toolchain_path)
+
+    else:
+        print("✅ Toolchain check")
+
+
+def show_banner():
+    banner_path = os.path.join(RUN_ENV_SCRIPT_PATH, "banner.py")
+    run_script_in_venv(venv_path, None, banner_path)
+
+def parse_args(argv):
+    parser = argparse.ArgumentParser(
+        description="Run script inside prepared environment",
+        usage="%(prog)s settings.json [--all] [--venv-dotenv] [--zephyr] "
+              "[--toolchain] script.py [script args ...]"
+    )
+
+    parser.add_argument(
+        "--all", action="store_true", help="Run all setup steps"
+    )
+    parser.add_argument(
+        "--venv-dotenv", action="store_true", help="Setup venv dotenv"
+    )
+    parser.add_argument(
+        "--zephyr", action="store_true", help="Setup Zephyr environment"
+    )
+    parser.add_argument(
+        "--toolchain", action="store_true", help="Setup toolchain environment"
+    )
+    parser.add_argument(
+        "settings_json", help="Json with project variables"
+    )
+    parser.add_argument(
+        "rest", nargs=argparse.REMAINDER,
+        help="Script to run and its arguments"
+    )
+
+    args = parser.parse_args(argv)
+
+    args.script_to_run = None
+    args.script_args = []
+
+    if args.rest:
+        args.script_to_run = args.rest[0]
+        args.script_args = args.rest[1:]
+
+    if not (args.all or args.venv_dotenv or args.zephyr or args.toolchain):
+        parser.error(f"❌ At least one of these flags is required: --all," + 
+                f" --venv-dotenv, --zephyr, --toolchain\n")
+
+    return args
+
+def load_settings(settings_path):
+    try:
+        with open(settings_path, 'r', encoding='utf-8') as f:
+            settings = json.load(f)
+        return settings
+    except FileNotFoundError:
+        print(f"❌ JSON File not found: {settings_path}")
+        raise
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON Decode Error: {e}")
+        raise
+
+if __name__ == "__main__":
+
+    args = parse_args(sys.argv[1:])
+
+    settings_json = load_settings(args.settings_json)
+
+    company_name = settings_json["company_name"]
+    project_name = settings_json["project_name"]
+    
+    app_path = settings_json["app_path"]
+
+    venv_path = settings_json["venv_path"]
+    extra_requirements_path = settings_json["extra_requirements_path"]
+    dotenv_path = settings_json["dotenv_path"]
+
+    zephyr_env_path = settings_json["zephyr_env_path"]
+    zephyr_boards_path = settings_json["zephyr_boards_path"]
+    zephyr_sdk_dir_name = settings_json["zephyr_sdk_dir_name"]
+    nrf_sdk_version = settings_json["nrf_sdk_version"]
+    nrf_sdk_url = settings_json["nrf_sdk_url"]
+    toolchain_path = settings_json["toolchain_path"]
+
+    build_path = settings_json["build_path"]
+
+    # STEP 1: create/check .venv
+    ensure_venv(venv_path, extra_requirements_path)
+
+    ## STEP 2: create/check .env
+    ensure_dotenv(company_name,
+                  project_name, 
+                  dotenv_path,
+                  venv_path,
+                  zephyr_env_path,
+                  toolchain_path,
+                  zephyr_sdk_dir_name,
+                  app_path,
+                  zephyr_boards_path,
+                  build_path)
+
+    ## STEP 3: create/check .zephyr_env
+    if args.zephyr or args.all:
+        ensure_zephyr_env(venv_path,
+                          zephyr_env_path,
+                          nrf_sdk_url,
+                          nrf_sdk_version)
+    else:
+        zephyr_env_path = None
+
+    ## STEP 4: create/check toolchain
+    if args.toolchain or args.all:
+        ensure_toolchain(venv_path, 
+                         zephyr_env_path,
+                         toolchain_path,
+                         zephyr_sdk_dir_name)
+
+    show_banner()
+
+    if not args.script_to_run:
+        print("🗿 No script to run (.py file not found in arguments)\n")
+        exit()
+
+    run_script_in_venv(venv_path, zephyr_env_path, args.script_to_run, args.script_args)
