@@ -12,17 +12,16 @@ RUN_ENV_SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
 
 def check_tool(tool_name, install_instruction):
     if shutil.which(tool_name):
-        print(f"✅ {tool_name} is installed")
         return True
     else:
-        print(f"❌ {tool_name} is not installed. Install it using:\n{install_instruction}")
+        print(f"❌ {tool_name} is not installed. Install it using:\n> {install_instruction}")
         return False
 
-def check_dependencies():
+def check_system_dependencies():
 
     dependencies = []
 
-    if sys.platform == "Linux":
+    if sys.platform == "linux":
         dependencies = [
             ("git", "sudo apt install git"),
             ("cmake", "sudo apt install cmake"),
@@ -30,10 +29,8 @@ def check_dependencies():
             ("ccache", "sudo apt install ccache"),
             ("dtc", "sudo apt install device-tree-compiler"),
             ("wget", "sudo apt install wget"),
-            ("openocd", "sudo apt install openocd"),
-            ("clang-format", "sudo apt install clang-format"),
         ]
-    elif sys.platform == "Darwin":  # macOS
+    elif sys.platform == "darwin":  # macOS
         dependencies = [
             ("git", "brew install git"),
             ("cmake", "brew install cmake"),
@@ -41,9 +38,8 @@ def check_dependencies():
             ("ccache", "brew install ccache"),
             ("dtc", "brew install dtc"),
             ("wget", "brew install wget"),
-            ("openocd", "brew install openocd"),
         ]
-    elif sys.platform == "Windows":
+    elif sys.platform == "win32":
         dependencies = [
             ("git", "winget install Git.Git"),
             ("python", "winget install python"),
@@ -57,18 +53,18 @@ def check_dependencies():
     all_installed = True
     for tool, instruction in dependencies:
         if not check_tool(tool, instruction):
-            print(f"❌ Missing {tool}. Please install it and try again.")
             all_installed = False
 
     if not all_installed:
         sys.exit(1)
 
-    print("✅ All dependencies are installed.")
+    print("✅ System dependencies check")
 
 def run_command_in_venv(venv_path, 
                         command, 
                         zephyr_env=None, 
-                        env=os.environ.copy()):
+                        env=os.environ.copy(),
+                        return_out=False):
 
     if sys.platform == "win32":
         venv_activate_path = os.path.join(venv_path, "Scripts", "activate.bat")
@@ -91,10 +87,20 @@ def run_command_in_venv(venv_path,
         command_str = f"bash -c '{activate_command} && {command}'"
 
     try:
-        subprocess.run(command_str, shell=True, check=True, env=env)
-        return True
-    except:
-        return False
+
+        kwargs = {}
+        if return_out:
+            kwargs = dict(stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        result = subprocess.run(command_str, shell=True, check=True, env=env, **kwargs)
+
+        if return_out:
+            return result.stdout, result.stderr
+        else:
+            return True, None
+
+    except subprocess.CalledProcessError as e:
+        return None, e
 
 
 def run_script_in_venv(venv_path, 
@@ -108,8 +114,9 @@ def run_script_in_venv(venv_path,
 
     command_list = [PYTHON, script_path] + script_args
     command = " ".join(command_list)
-    res = run_command_in_venv(venv_path, command, zephyr_env_path, env)
-    if res == False:
+    res, err = run_command_in_venv(venv_path, command, zephyr_env_path, env)
+    if err:
+        print("❌ Failed run script in venv")
         sys.exit(1)
 
 
@@ -124,13 +131,15 @@ def ensure_venv(venv_path, extra_requirements_path=None):
         if extra_requirements_path is not None:
             command += f" -r {extra_requirements_path}"
 
-        res = run_command_in_venv(venv_path, command)
-        
-        if res == True:
-            print(f"🏁 Python virtual environment installed\n")
-        else:
+        res, err = run_command_in_venv(venv_path, command)
+    
+        if err:
             shutil.rmtree(venv_path)
             print("❌ Python .venv setup failed\n")
+            sys.exit(1)
+
+        print(f"🏁 Python virtual environment installed\n")
+
     else:
         print(f"✅ Python virtual envirornment check")
 
@@ -140,8 +149,6 @@ def ensure_dotenv(company_name,
                   dotenv_path,
                   venv_path,
                   zephyr_env_path,
-                  toolchain_path,
-                  zephyr_sdk_dir_name,
                   app_path,
                   zephyr_boards_path,
                   build_path,
@@ -151,9 +158,7 @@ def ensure_dotenv(company_name,
     abs_app_path = os.path.abspath(app_path)
     abs_venv_path = os.path.abspath(venv_path)
     abs_zephyr_env_path = os.path.abspath(zephyr_env_path)
-    abs_toolchain_path = os.path.abspath(toolchain_path)
     abs_build_path = os.path.abspath(build_path)
-    abs_zephyr_sdk_path = os.path.join(abs_toolchain_path, zephyr_sdk_dir_name)
 
     if os.path.exists(dotenv_path):
         print(f"✅ .env file check")
@@ -168,8 +173,6 @@ def ensure_dotenv(company_name,
         "PYTHON_VENV": abs_venv_path,
         "ZEPHYR_ENV": abs_zephyr_env_path,
         "APP_PATH": abs_app_path,
-        "TOOLCHAIN_PATH": abs_toolchain_path,
-        "ZEPHYR_SDK_PATH": abs_zephyr_sdk_path,
         "ZEPHYR_TOOLCHAIN_VARIANT": "zephyr",
         "BUILD_DIR": abs_build_path
     }
@@ -195,50 +198,67 @@ def ensure_zephyr_env(venv_path,
         env = os.environ.copy()
         env.pop("ZEPHYR_BASE", None)
 
-        res = run_command_in_venv(venv_path, f"mkdir {zephyr_env_path} && "
+        res, err = run_command_in_venv(venv_path, f"mkdir {zephyr_env_path} && "
                 f"cd {zephyr_env_path} && "
                 f"west init -m {nrf_sdk_url} --mr {nrf_sdk_version} "
                 f"&& west update", env=env)
         
-        if res == True:
-            print("🏁 Zephyr & nRF-SDK installed!\n")
-        else:
+        if err:
             shutil.rmtree(zephyr_env_path)
             print("❌ Zephyr environment setup failed\n")
+            sys.exit(1)
 
+        print("🏁 Zephyr & nRF-SDK installed!\n")
     else:
         print(f"✅ Zephyr virtual envirornment check")
 
 
+def check_zephyr_sdk(venv_path, 
+                     zephyr_env_path):
+
+    res, err = run_command_in_venv(venv_path, f"west sdk list",
+        zephyr_env_path, return_out=True)
+
+    if err:
+        return False
+
+    lines = res.splitlines()
+    in_installed_section = False
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped == "installed-toolchains:":
+            in_installed_section = True
+            continue
+        if stripped == "available-toolchains:":
+            in_installed_section = False
+            continue
+        if in_installed_section:
+            if stripped == "- arm-zephyr-eabi":
+                return True
+
+    return False
+
 def ensure_toolchain(venv_path, 
-                     zephyr_env_path, 
-                     toolchain_path, 
-                     zephyr_sdk_dir_name):
+                     zephyr_env_path):
 
-    if not os.path.exists(toolchain_path):
-        print("📦 Initializing toolchain...\n")
+    check_res = check_zephyr_sdk(venv_path, zephyr_env_path)
 
-        env = os.environ.copy()
-        env.pop("ZEPHYR_SDK_INSTALL_DIR", None)
-        env.pop("ZEPHYR_TOOLCHAIN_VARIANT", None)
+    if check_res:
+         print(f"✅ Toolchain check")
+         return
 
-        os.makedirs(toolchain_path)
+    print("📦 Initializing toolchain...\n")
 
-        zephyr_sdk_path = os.path.join(toolchain_path, zephyr_sdk_dir_name)
-        abs_zephyr_sdk_path = os.path.abspath(zephyr_sdk_path)
-    
-        res = run_command_in_venv(venv_path, f"west sdk install --install-dir "
-                f"{abs_zephyr_sdk_path} --toolchains arm-zephyr-eabi --no-hosttools", 
-                zephyr_env_path, env)
+    res, err = run_command_in_venv(venv_path, f"west sdk install " +
+            f"--toolchains arm-zephyr-eabi --no-hosttools", 
+            zephyr_env_path)
 
-        if res == True:
-            print("🏁 Toolchain installed\n")
-        else:
-            print("❌ Toolchain setup failed\n")
-            shutil.rmtree(toolchain_path)
+    if err:
+        print("❌ Toolchain setup failed\n")
+        sys.exit(1)
 
-    else:
-        print("✅ Toolchain check")
+    print("🏁 Toolchain installed\n")
 
 
 def show_banner():
@@ -316,15 +336,13 @@ if __name__ == "__main__":
 
     zephyr_env_path = settings_json["zephyr_env_path"]
     zephyr_boards_path = settings_json["zephyr_boards_path"]
-    zephyr_sdk_dir_name = settings_json["zephyr_sdk_dir_name"]
     nrf_sdk_version = settings_json["nrf_sdk_version"]
     nrf_sdk_url = settings_json["nrf_sdk_url"]
-    toolchain_path = settings_json["toolchain_path"]
 
     build_path = settings_json["build_path"]
 
-    # STEP 0: chech dependencies
-    check_dependencies()
+    # STEP 0: check dependencies
+    check_system_dependencies()
 
     # STEP 1: create/check .venv
     ensure_venv(venv_path, extra_requirements_path)
@@ -335,8 +353,6 @@ if __name__ == "__main__":
                   dotenv_path,
                   venv_path,
                   zephyr_env_path,
-                  toolchain_path,
-                  zephyr_sdk_dir_name,
                   app_path,
                   zephyr_boards_path,
                   build_path)
@@ -353,9 +369,7 @@ if __name__ == "__main__":
     ## STEP 4: create/check toolchain
     if args.toolchain or args.all:
         ensure_toolchain(venv_path, 
-                         zephyr_env_path,
-                         toolchain_path,
-                         zephyr_sdk_dir_name)
+                         zephyr_env_path)
 
     show_banner()
 

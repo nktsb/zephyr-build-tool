@@ -26,7 +26,6 @@ if __name__ == "__main__":
 
     app_path = os.environ["APP_PATH"]
     board_root = os.environ["ZEPHYR_BOARD_ROOT"]
-    zephyr_sdk_path = os.environ["ZEPHYR_SDK_PATH"]
     prj_conf_path = os.path.join(app_path, "prj.conf")
     build_path = os.environ["BUILD_DIR"]
     board_name = args.board_name
@@ -46,7 +45,6 @@ if __name__ == "__main__":
         f"--",
         f"-DBOARD_ROOT={board_root}",
         f"-DZEPHYR_TOOLCHAIN_VARIANT=zephyr",
-        f"-DZEPHYR_SDK_INSTALL_DIR={zephyr_sdk_path}",
         f"-DCONF_FILE={prj_conf_path}",
     ]
 
