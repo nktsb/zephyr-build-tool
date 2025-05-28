@@ -2,9 +2,25 @@ import subprocess
 import os
 import sys
 from dotenv import load_dotenv
-import prepare_images
+import argparse
+
+def parse_args(argv):
+    parser = argparse.ArgumentParser(
+        description="🛠 Run build FW script",
+        usage="%(prog)s board_name"
+    )
+
+    parser.add_argument(
+        "board_name", help="Zephyr board_name"
+    )
+
+    args = parser.parse_args(argv)
+
+    return args
 
 if __name__ == "__main__":
+
+    args = parse_args(sys.argv[1:])
 
     load_dotenv()
 
@@ -13,6 +29,7 @@ if __name__ == "__main__":
     zephyr_sdk_path = os.environ["ZEPHYR_SDK_PATH"]
     prj_conf_path = os.path.join(app_path, "prj.conf")
     build_path = os.environ["BUILD_DIR"]
+    board_name = args.board_name
 
     print("🛠 Running build FW...\n")
 
@@ -20,7 +37,7 @@ if __name__ == "__main__":
         f"west",
         f"build",
         f"-b",
-        f"pocket_adventurer_dev_board",
+        f"{board_name}",
         f"{app_path}",
         f"--no-sysbuild",
         f"--build-dir",
