@@ -74,7 +74,7 @@ Prepare a settings.json file like:
 ### 3. 🏗 Run the environment setup and build firmware script
 
 ```console
-python run_env.py --env venv-dotenv zephyr toolchain --set settings.json --run build_app.py -- board_name
+python run_env.py --env all --set settings.json --run build_app.py -- board_name
 ```
 
 Sample output:
@@ -96,7 +96,7 @@ Sample output:
 
 Arguments:
 
-* --env : Select environment components to prepare (all, venv-dotenv, zephyr, toolchain)
+* --env : Select environment components to prepare (all, venv-dotenv)
 * --set : Path to the JSON settings file
 * --run : Script to run inside the prepared environment
 * -- : Separator for script arguments
@@ -104,7 +104,7 @@ Arguments:
 ### 4. Run your custom script
 
 ```console
-python run_env.py --env venv-dotenv zephyr toolchain --set settings.json --run your_script.py -- [your_script args]
+python run_env.py --env venv-dotenv --set settings.json --run your_script.py -- [your_script args]
 ```
 
 ## ⚙️ Repository Structure

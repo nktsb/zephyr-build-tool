@@ -268,13 +268,13 @@ def show_banner():
 def parse_args(argv):
     parser = argparse.ArgumentParser(
         description="Run script inside prepared environment",
-        usage="%(prog)s --env [venv-dotenv zephyr toolchain] --set settings.json --run script.py -- [script args ...]"
+        usage="%(prog)s --env [all venv-dotenv] --set settings.json --run script.py -- [script args ...]"
     )
 
     parser.add_argument(
         "--env",
         nargs="+",
-        choices=["venv-dotenv", "zephyr", "toolchain", "all"],
+        choices=["venv-dotenv", "all"],
         help="Environment setup components"
     )
 
@@ -297,8 +297,6 @@ def parse_args(argv):
 
     args.all = "all" in (args.env or [])
     args.venv_dotenv = "venv-dotenv" in (args.env or []) or args.all == True
-    args.zephyr = "zephyr" in (args.env or []) or args.all == True
-    args.toolchain = "toolchain" in (args.env or []) or args.all == True
 
     if '--' in args.script_args:
         args.script_args.remove('--')
@@ -341,9 +339,6 @@ if __name__ == "__main__":
 
     build_path = settings_json["build_path"]
 
-    # STEP 0: check dependencies
-    check_system_dependencies()
-
     # STEP 1: create/check .venv
     ensure_venv(venv_path, extra_requirements_path)
 
@@ -357,8 +352,12 @@ if __name__ == "__main__":
                   zephyr_boards_path,
                   build_path)
 
+    ## STEP 4: check dependencies
+    if args.all:
+        check_system_dependencies()
+
     ## STEP 3: create/check .zephyr_env
-    if args.zephyr:
+    if args.all:
         ensure_zephyr_env(venv_path,
                           zephyr_env_path,
                           nrf_sdk_url,
@@ -367,7 +366,7 @@ if __name__ == "__main__":
         zephyr_env_path = None
 
     ## STEP 4: create/check toolchain
-    if args.toolchain:
+    if args.all:
         ensure_toolchain(venv_path, 
                          zephyr_env_path)
 
