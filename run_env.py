@@ -268,42 +268,40 @@ def show_banner():
 def parse_args(argv):
     parser = argparse.ArgumentParser(
         description="Run script inside prepared environment",
-        usage="%(prog)s settings.json [--all] [--venv-dotenv] [--zephyr] "
-              "[--toolchain] script.py [script args ...]"
+        usage="%(prog)s --env [venv-dotenv zephyr toolchain] --set settings.json --run script.py -- [script args ...]"
     )
 
     parser.add_argument(
-        "--all", action="store_true", help="Run all setup steps"
+        "--env",
+        nargs="+",
+        choices=["venv-dotenv", "zephyr", "toolchain", "all"],
+        help="Environment setup components"
     )
+
     parser.add_argument(
-        "--venv-dotenv", action="store_true", help="Setup venv dotenv"
+        "--set", dest="settings_json", required=True,
+        help="JSON file with project settings"
     )
+
     parser.add_argument(
-        "--zephyr", action="store_true", help="Setup Zephyr environment"
+        "--run", dest="script_to_run", required=False,
+        help="Script to run"
     )
+
     parser.add_argument(
-        "--toolchain", action="store_true", help="Setup toolchain environment"
-    )
-    parser.add_argument(
-        "settings_json", help="Json with project variables"
-    )
-    parser.add_argument(
-        "rest", nargs=argparse.REMAINDER,
-        help="Script to run and its arguments"
+        "script_args", nargs=argparse.REMAINDER,
+        help="Arguments to pass to the script (only used if --run is specified)"
     )
 
     args = parser.parse_args(argv)
 
-    args.script_to_run = None
-    args.script_args = []
+    args.all = "all" in (args.env or [])
+    args.venv_dotenv = "venv-dotenv" in (args.env or []) or args.all == True
+    args.zephyr = "zephyr" in (args.env or []) or args.all == True
+    args.toolchain = "toolchain" in (args.env or []) or args.all == True
 
-    if args.rest:
-        args.script_to_run = args.rest[0]
-        args.script_args = args.rest[1:]
-
-    if not (args.all or args.venv_dotenv or args.zephyr or args.toolchain):
-        parser.error(f"❌ At least one of these flags is required: --all," + 
-                f" --venv-dotenv, --zephyr, --toolchain\n")
+    if '--' in args.script_args:
+        args.script_args.remove('--')
 
     return args
 
@@ -322,6 +320,8 @@ def load_settings(settings_path):
 if __name__ == "__main__":
 
     args = parse_args(sys.argv[1:])
+
+    print(args)
 
     settings_json = load_settings(args.settings_json)
 
@@ -358,7 +358,7 @@ if __name__ == "__main__":
                   build_path)
 
     ## STEP 3: create/check .zephyr_env
-    if args.zephyr or args.all:
+    if args.zephyr:
         ensure_zephyr_env(venv_path,
                           zephyr_env_path,
                           nrf_sdk_url,
@@ -367,7 +367,7 @@ if __name__ == "__main__":
         zephyr_env_path = None
 
     ## STEP 4: create/check toolchain
-    if args.toolchain or args.all:
+    if args.toolchain:
         ensure_toolchain(venv_path, 
                          zephyr_env_path)
 
