@@ -59,8 +59,8 @@ Prepare a settings.json file like:
 	"venv_path": ".venv",
 	"extra_requirements_path": "scripts/requirements.txt",
 	"dotenv_path": ".env",
-	"nrf_sdk_url": "https://github.com/nrfconnect/sdk-nrf",
-	"nrf_sdk_version": "v2.9.1",
+	"manifest_url": "https://github.com/nrfconnect/sdk-nrf",
+	"manifest_version": "v2.9.1",
 	"zephyr_env_path": ".zephyr_env",
 	"zephyr_boards_path": "app",
 
@@ -79,9 +79,9 @@ python run_env.py --env all --set settings.json --run build_app.py -- board_name
 
 Sample output:
 ```console
-✅ System dependencies check
 ✅ Python virtual envirornment check
 ✅ .env file check
+✅ System dependencies check
 ✅ Zephyr virtual envirornment check
 ✅ Toolchain check
                                                                          

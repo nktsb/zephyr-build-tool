@@ -189,8 +189,8 @@ def ensure_dotenv(company_name,
 
 def ensure_zephyr_env(venv_path,
                       zephyr_env_path,
-                      nrf_sdk_url,
-                      nrf_sdk_version):
+                      manifest_url,
+                      manifest_version):
 
     if not os.path.exists(zephyr_env_path):
         print("📦 Initializing Zephyr virtual environment...\n")
@@ -200,7 +200,7 @@ def ensure_zephyr_env(venv_path,
 
         res, err = run_command_in_venv(venv_path, f"mkdir {zephyr_env_path} && "
                 f"cd {zephyr_env_path} && "
-                f"west init -m {nrf_sdk_url} --mr {nrf_sdk_version} "
+                f"west init -m {manifest_url} --mr {manifest_version} "
                 f"&& west update", env=env)
         
         if err:
@@ -319,8 +319,6 @@ if __name__ == "__main__":
 
     args = parse_args(sys.argv[1:])
 
-    print(args)
-
     settings_json = load_settings(args.settings_json)
 
     company_name = settings_json["company_name"]
@@ -334,8 +332,8 @@ if __name__ == "__main__":
 
     zephyr_env_path = settings_json["zephyr_env_path"]
     zephyr_boards_path = settings_json["zephyr_boards_path"]
-    nrf_sdk_version = settings_json["nrf_sdk_version"]
-    nrf_sdk_url = settings_json["nrf_sdk_url"]
+    manifest_version = settings_json["manifest_version"]
+    manifest_url = settings_json["manifest_url"]
 
     build_path = settings_json["build_path"]
 
@@ -360,8 +358,8 @@ if __name__ == "__main__":
     if args.all:
         ensure_zephyr_env(venv_path,
                           zephyr_env_path,
-                          nrf_sdk_url,
-                          nrf_sdk_version)
+                          manifest_url,
+                          manifest_version)
     else:
         zephyr_env_path = None
 
