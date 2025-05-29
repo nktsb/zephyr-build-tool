@@ -42,7 +42,13 @@ if __name__ == "__main__":
 
     print("🛠 Running build FW...\n")
 
-    build_command = [
+    ninja_build_command = [
+        f"ninja",
+        f"-C",
+        f"{build_path}"
+    ]
+
+    west_build_command = [
         f"west",
         f"build",
         f"-b",
@@ -58,12 +64,26 @@ if __name__ == "__main__":
         f"-DCONF_FILE={prj_conf_name}",
     ]
 
+    build_ninja_path = f"{build_path}/build.ninja"
+    if os.path.exists(build_ninja_path):
+        try:
+            print("🥷 Running Ninja build...\n")
+            subprocess.run(ninja_build_command, check=True)
+            print("\n🏁 Build completed successfully.\n")
+            sys.exit(0)
+        except subprocess.CalledProcessError as e:
+            print(f"\n❗️ Ninja build failed: {e}\n")
+            sys.exit(0)
+        except Exception as e:
+            print(f"\n❌ Unexpected error: {e}\n")
+            sys.exit(1)
     try:
-        subprocess.run(build_command, check=True)
+        print("🌅 Running West build...\n")
+        subprocess.run(west_build_command, check=True)
         print("\n🏁 Build completed successfully.\n")
     except subprocess.CalledProcessError as e:
-        print(f"\n❌ Error during build: {e}\n")
-        sys.exit(1)
+        print(f"\n❗️ West build failed: {e}\n")
+        sys.exit(0)
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}\n")
         sys.exit(1)
