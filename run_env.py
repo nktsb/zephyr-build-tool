@@ -284,6 +284,11 @@ def parse_args(argv):
     )
 
     parser.add_argument(
+        "--req", dest="extra_requirements", required=False,
+        help="extra requiriments.txt file"
+    )
+
+    parser.add_argument(
         "--run", dest="script_to_run", required=False,
         help="Script to run"
     )
@@ -327,7 +332,7 @@ if __name__ == "__main__":
     app_path = settings_json["app_path"]
 
     venv_path = settings_json["venv_path"]
-    extra_requirements_path = settings_json["extra_requirements_path"]
+    extra_requirements_path = args.extra_requirements
     dotenv_path = settings_json["dotenv_path"]
 
     zephyr_env_path = settings_json["zephyr_env_path"]
