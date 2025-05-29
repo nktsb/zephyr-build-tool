@@ -309,7 +309,7 @@ def load_settings(settings_path):
             settings = json.load(f)
         return settings
     except FileNotFoundError:
-        print(f"❌ JSON File not found")
+        print(f"❌ JSON File not found: {settings_path}")
         sys.exit(1)
     except json.JSONDecodeError as e:
         print(f"❌ JSON Decode Error: {e}")
