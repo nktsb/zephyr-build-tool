@@ -14,6 +14,10 @@ def parse_args(argv):
         "board_name", help="Zephyr board_name"
     )
 
+    parser.add_argument(
+        "prj_conf", nargs="?", help="Zephyr .conf file"
+    )
+
     args = parser.parse_args(argv)
 
     return args
@@ -26,7 +30,13 @@ if __name__ == "__main__":
 
     app_path = os.environ["APP_PATH"]
     board_root = os.environ["ZEPHYR_BOARD_ROOT"]
-    prj_conf_path = os.path.join(app_path, "prj.conf")
+
+    if not args.prj_conf:
+        prj_conf_name = "prj.conf"
+    else:
+        prj_conf_name = args.prj_conf
+
+
     build_path = os.environ["BUILD_DIR"]
     board_name = args.board_name
 
@@ -45,7 +55,7 @@ if __name__ == "__main__":
         f"--",
         f"-DBOARD_ROOT={board_root}",
         f"-DZEPHYR_TOOLCHAIN_VARIANT=zephyr",
-        f"-DCONF_FILE={prj_conf_path}",
+        f"-DCONF_FILE={prj_conf_name}",
     ]
 
     try:
