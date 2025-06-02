@@ -212,6 +212,20 @@ def ensure_zephyr_env(venv_path,
     else:
         print(f"✅ Zephyr virtual envirornment check")
 
+def get_sdk_path_from_west_sdk_list(venv_path, zephyr_env_path):
+    res, err = run_command_in_venv(venv_path, "west sdk list", zephyr_env_path, return_out=True)
+    if err:
+        return None
+
+    lines = res.splitlines()
+    sdk_path = None
+    for line in lines:
+        line = line.strip()
+        if line.startswith("path:"):
+            sdk_path = line.split("path:")[1].strip()
+            break
+    return sdk_path
+
 
 def check_zephyr_sdk(venv_path, 
                      zephyr_env_path):
@@ -245,8 +259,9 @@ def ensure_toolchain(venv_path,
     check_res = check_zephyr_sdk(venv_path, zephyr_env_path)
 
     if check_res:
-         print(f"✅ Toolchain check")
-         return
+        sdk_path = get_sdk_path_from_west_sdk_list(venv_path, zephyr_env_path)
+        print(f"✅ Toolchain check: {sdk_path}")
+        return
 
     print("📦 Initializing toolchain...\n")
 
