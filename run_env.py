@@ -212,21 +212,6 @@ def ensure_zephyr_env(venv_path,
     else:
         print(f"✅ Zephyr virtual envirornment check")
 
-def get_sdk_path_from_west_sdk_list(venv_path, zephyr_env_path):
-    res, err = run_command_in_venv(venv_path, "west sdk list", zephyr_env_path, return_out=True)
-    if err:
-        return None
-
-    lines = res.splitlines()
-    sdk_path = None
-    for line in lines:
-        line = line.strip()
-        if line.startswith("path:"):
-            sdk_path = line.split("path:")[1].strip()
-            break
-    return sdk_path
-
-
 def check_zephyr_sdk(venv_path, 
                      zephyr_env_path):
 
@@ -239,27 +224,30 @@ def check_zephyr_sdk(venv_path,
     lines = res.splitlines()
     in_installed_section = False
 
+    sdk_path = None
     for line in lines:
         stripped = line.strip()
+        if stripped.startswith("path:"):
+            sdk_path = line.split("path:")[1].strip()
+            continue
         if stripped == "installed-toolchains:":
             in_installed_section = True
             continue
+        if in_installed_section:
+            if "arm-zephyr-eabi" in stripped:
+                return sdk_path
         if stripped == "available-toolchains:":
             in_installed_section = False
             continue
-        if in_installed_section:
-            if stripped == "- arm-zephyr-eabi":
-                return True
 
-    return False
+    return None
 
 def ensure_toolchain(venv_path, 
                      zephyr_env_path):
 
-    check_res = check_zephyr_sdk(venv_path, zephyr_env_path)
+    sdk_path = check_zephyr_sdk(venv_path, zephyr_env_path)
 
-    if check_res:
-        sdk_path = get_sdk_path_from_west_sdk_list(venv_path, zephyr_env_path)
+    if sdk_path:
         print(f"✅ Toolchain check: {sdk_path}")
         return
 
