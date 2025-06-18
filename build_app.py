@@ -49,7 +49,8 @@ def run_ninja_build(app_path, build_path):
         print(f"\n❌ Unexpected error: {e}\n")
         sys.exit(1)
 
-def run_west_build(app_path, build_path, board_root, board_name, prj_conf_name):
+def run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, overlay_files=None):
+
     west_build_command = [
         f"west",
         f"build",
@@ -65,6 +66,10 @@ def run_west_build(app_path, build_path, board_root, board_name, prj_conf_name):
         f"-DZEPHYR_TOOLCHAIN_VARIANT=zephyr",
         f"-DCONF_FILE={prj_conf_name}",
     ]
+
+    if overlay_files:
+        overlay_str = ";".join(overlay_files)
+        west_build_command.append(f"-DDTC_OVERLAY_FILE={overlay_str}")
 
     try:
         print("🌅 Running West build...\n")
@@ -85,11 +90,15 @@ def parse_args(argv):
     )
 
     parser.add_argument(
-        "board_name", help="Zephyr board_name"
+        "--board_name", help="Zephyr board_name"
     )
 
     parser.add_argument(
-        "prj_conf", nargs="?", help="Zephyr .conf file"
+        "--prj_conf", nargs="*", help="One or more Zephyr .conf files"
+    )
+
+    parser.add_argument(
+        "--overlay", nargs='*', default=[], help="One or more .overlay files"
     )
 
     args = parser.parse_args(argv)
@@ -105,12 +114,12 @@ if __name__ == "__main__":
     app_path = os.environ["APP_PATH"]
     board_root = os.environ["ZEPHYR_BOARD_ROOT"]
 
-    if not args.prj_conf:
-        prj_conf_name = "prj.conf"
+    if args.prj_conf:
+        prj_conf_name = ";".join(args.prj_conf)
     else:
-        prj_conf_name = args.prj_conf
+        prj_conf_name = "prj.conf"
 
-
+    overlay_files = args.overlay
     build_path = os.environ["BUILD_DIR"]
     board_name = args.board_name
 
@@ -120,4 +129,5 @@ if __name__ == "__main__":
         run_ninja_build(app_path, build_path)
         sys.exit(0)
 
-    run_west_build(app_path, build_path, board_root, board_name, prj_conf_name)
+    run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, overlay_files)
+
