@@ -49,7 +49,12 @@ def run_ninja_build(app_path, build_path):
         print(f"\n❌ Unexpected error: {e}\n")
         sys.exit(1)
 
-def run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, overlay_files=None):
+def run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, overlay_files=None, use_sysbuild=False):
+
+    if use_sysbuild == True:
+        sysbuild_cmd = "--sysbuild"
+    else:
+        sysbuild_cmd = "--no-sysbuild"
 
     west_build_command = [
         f"west",
@@ -57,7 +62,7 @@ def run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, 
         f"-b",
         f"{board_name}",
         f"{app_path}",
-        f"--no-sysbuild",
+        f"{sysbuild_cmd}",
         f"--build-dir",
         f"{build_path}",
         f"--pristine=always",
@@ -101,6 +106,10 @@ def parse_args(argv):
         "--overlay", nargs='*', default=[], help="One or more .overlay files"
     )
 
+    parser.add_argument(
+        "--sysbuild", action='store_true', help="Use --sysbuild (default is --no-sysbuild)"
+    )
+
     args = parser.parse_args(argv)
 
     return args
@@ -122,6 +131,7 @@ if __name__ == "__main__":
     overlay_files = args.overlay
     build_path = os.environ["BUILD_DIR"]
     board_name = args.board_name
+    use_sysbuild = args.sysbuild
 
     print("🛠 Running build FW...\n")
 
@@ -129,5 +139,5 @@ if __name__ == "__main__":
         run_ninja_build(app_path, build_path)
         sys.exit(0)
 
-    run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, overlay_files)
+    run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, overlay_files, use_sysbuild)
 
