@@ -66,6 +66,7 @@ def run_command_in_venv(venv_path,
                         env=os.environ.copy(),
                         return_out=False):
 
+    env.pop("ZEPHYR_BASE", None)
     if sys.platform == "win32":
         venv_activate_path = os.path.join(venv_path, "Scripts", "activate.bat")
         if (zephyr_env != None):
@@ -108,6 +109,8 @@ def run_script_in_venv(venv_path,
                        script_path, 
                        script_args=None, 
                        env=os.environ.copy()):
+
+    env.pop("ZEPHYR_BASE", None)
 
     if script_args is None:
         script_args = []
