@@ -27,7 +27,7 @@ def get_cached_board(build_path):
     return None
 
 def ninja_build_is_valid(build_path):
-    build_ninja_path = f"{build_path}/build.ninja"
+    build_ninja_path = os.path.join(build_path,"build.ninja")
     if os.path.exists(build_ninja_path) and \
             get_cached_board(build_path) == board_name:
             return True
