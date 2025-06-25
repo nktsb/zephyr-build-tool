@@ -55,9 +55,7 @@ Prepare a settings.json file like:
 	"project_name": "your-project",
 	"app_path": "app",
 
-	"run_env_script_path": "scripts/zephyr-build-tool",
 	"venv_path": ".venv",
-	"extra_requirements_path": "scripts/requirements.txt",
 	"dotenv_path": ".env",
 	"manifest_url": "https://github.com/nrfconnect/sdk-nrf",
 	"manifest_version": "v2.9.1",
