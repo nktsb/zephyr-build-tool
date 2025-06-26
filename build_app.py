@@ -84,8 +84,9 @@ def run_west_build(app_path, build_path, board_root, board_name, prj_conf_name,
             else:
                 print(f"⚠️ Invalid define format: '{define}' (expected KEY=VALUE)")
 
+    command_str = " ".join(west_build_command)
 
-    print(f"\n🚀 west command:\n{" ".join(west_build_command)}\n")
+    print(f"\n🚀 west command:\n{command_str}\n")
 
     try:
         print("🌅 Running West build...\n")
