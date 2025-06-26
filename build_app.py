@@ -49,7 +49,8 @@ def run_ninja_build(app_path, build_path):
         print(f"\n❌ Unexpected error: {e}\n")
         sys.exit(1)
 
-def run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, overlay_files=None, use_sysbuild=False):
+def run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, 
+                   overlay_files=None, use_sysbuild=False, extra_defines=None):
 
     if use_sysbuild == True:
         sysbuild_cmd = "--sysbuild"
@@ -65,7 +66,7 @@ def run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, 
         f"{sysbuild_cmd}",
         f"--build-dir",
         f"{build_path}",
-        f"--pristine=always",
+        f"--pristine=auto",
         f"--",
         f"-DBOARD_ROOT={board_root}",
         f"-DZEPHYR_TOOLCHAIN_VARIANT=zephyr",
@@ -75,6 +76,16 @@ def run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, 
     if overlay_files:
         overlay_str = ";".join(overlay_files)
         west_build_command.append(f"-DDTC_OVERLAY_FILE={overlay_str}")
+
+    if extra_defines:
+        for define in extra_defines:
+            if '=' in define:
+                west_build_command.append(f"-D{define}")
+            else:
+                print(f"⚠️ Invalid define format: '{define}' (expected KEY=VALUE)")
+
+
+    print(f"\n🚀 west command:\n{" ".join(west_build_command)}\n")
 
     try:
         print("🌅 Running West build...\n")
@@ -110,6 +121,10 @@ def parse_args(argv):
         "--sysbuild", action='store_true', help="Use --sysbuild (default is --no-sysbuild)"
     )
 
+    parser.add_argument(
+        "--defines", nargs='*', default=[], help="Additional CMake defines in KEY=VALUE format"
+    )
+
     args = parser.parse_args(argv)
 
     return args
@@ -132,6 +147,7 @@ if __name__ == "__main__":
     build_path = os.environ["BUILD_DIR"]
     board_name = args.board_name
     use_sysbuild = args.sysbuild
+    extra_defines = args.defines
 
     print("🛠 Running build FW...\n")
 
@@ -139,5 +155,6 @@ if __name__ == "__main__":
         run_ninja_build(app_path, build_path)
         sys.exit(0)
 
-    run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, overlay_files, use_sysbuild)
+    run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, 
+                   overlay_files, use_sysbuild, extra_defines)
 
