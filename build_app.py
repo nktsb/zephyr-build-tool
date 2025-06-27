@@ -45,6 +45,7 @@ def run_ninja_build(app_path, build_path):
         print("\n🏁 Build completed successfully.\n")
     except subprocess.CalledProcessError as e:
         print(f"\n❗️ Ninja build failed: {e}\n")
+        sys.exit(1)
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}\n")
         sys.exit(1)
@@ -94,6 +95,7 @@ def run_west_build(app_path, build_path, board_root, board_name, prj_conf_name,
         print("\n🏁 Build completed successfully.\n")
     except subprocess.CalledProcessError as e:
         print(f"\n❗️ West build failed: {e}\n")
+        sys.exit(1)
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}\n")
         sys.exit(1)
@@ -154,8 +156,7 @@ if __name__ == "__main__":
 
     if ninja_build_is_valid(build_path):
         run_ninja_build(app_path, build_path)
-        sys.exit(0)
-
-    run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, 
-                   overlay_files, use_sysbuild, extra_defines)
+    else:
+        run_west_build(app_path, build_path, board_root, board_name, prj_conf_name, 
+                       overlay_files, use_sysbuild, extra_defines)
 
