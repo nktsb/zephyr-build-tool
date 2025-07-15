@@ -41,7 +41,7 @@ def run_ninja_build(app_path, build_path):
     ]
     try:
         print("🥷 Running Ninja build...\n")
-        subprocess.run(ninja_build_command, check=True)
+        subprocess.run(ninja_build_command, env=os.environ.copy(), check=True)
         print("\n🏁 Build completed successfully.\n")
     except subprocess.CalledProcessError as e:
         print(f"\n❗️ Ninja build failed: {e}\n")
@@ -91,7 +91,7 @@ def run_west_build(app_path, build_path, board_root, board_name, prj_conf_name,
 
     try:
         print("🌅 Running West build...\n")
-        subprocess.run(west_build_command, check=True)
+        subprocess.run(west_build_command, env=os.environ.copy(), check=True)
         print("\n🏁 Build completed successfully.\n")
     except subprocess.CalledProcessError as e:
         print(f"\n❗️ West build failed: {e}\n")
