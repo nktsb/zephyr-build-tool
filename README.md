@@ -66,6 +66,9 @@ Prepare a settings.json file like:
 }
 ```
 
+* You can use `"manifest_path"` with path ot local `west.yml` file instead of
+`"manifest_url"` and `"manifest_version"`
+
 * extra_requirements_path: Allows you to install additional Python modules into your virtual environment.
 
 
@@ -81,7 +84,7 @@ Sample output:
 ✅ .env file check
 ✅ System dependencies check
 ✅ Zephyr virtual envirornment check
-✅ Toolchain check
+✅ Toolchain check: /Users/nktsb/zephyr-sdk-0.16.8
                                                                          
  _   _  ___  _   _ _ __       ___ ___  _ __ ___  _ __   __ _ _ __  _   _ 
 | | | |/ _ \| | | | '__|____ / __/ _ \| '_ ` _ \| '_ \ / _` | '_ \| | | |

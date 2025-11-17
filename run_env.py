@@ -190,7 +190,8 @@ def ensure_dotenv(company_name,
 def ensure_zephyr_env(venv_path,
                       zephyr_env_path,
                       manifest_url,
-                      manifest_version):
+                      manifest_version,
+                      manifest_path=None):
 
     if not os.path.exists(zephyr_env_path):
         print("📦 Initializing Zephyr virtual environment...\n")
@@ -198,9 +199,14 @@ def ensure_zephyr_env(venv_path,
         env = os.environ.copy()
         env.pop("ZEPHYR_BASE", None)
 
+        if manifest_path:
+            manifest_arg = f"--mf {manifest_path}"
+        else:
+            manifest_arg = f"-m {manifest_url} --mr {manifest_version}"
+
         res, err = run_command_in_venv(venv_path, f"mkdir {zephyr_env_path} && "
                 f"cd {zephyr_env_path} && "
-                f"west init -m {manifest_url} --mr {manifest_version} "
+                f"west init {manifest_arg} "
                 f"&& west update", env=env)
         
         if err:
@@ -340,8 +346,9 @@ if __name__ == "__main__":
 
     zephyr_env_path = settings_json["zephyr_env_path"]
     zephyr_boards_path = settings_json["zephyr_boards_path"]
-    manifest_version = settings_json["manifest_version"]
-    manifest_url = settings_json["manifest_url"]
+    manifest_version = settings_json.get("manifest_version") or None
+    manifest_url = settings_json.get("manifest_url") or None
+    manifest_path = settings_json.get("manifest_path") or None
 
     build_path = settings_json["build_path"]
 
@@ -367,7 +374,8 @@ if __name__ == "__main__":
         ensure_zephyr_env(venv_path,
                           zephyr_env_path,
                           manifest_url,
-                          manifest_version)
+                          manifest_version,
+                          manifest_path)
     else:
         zephyr_env_path = None
 
