@@ -128,8 +128,9 @@ def ensure_venv(venv_path, extra_requirements_path=None):
         requirements_path = os.path.join(RUN_ENV_SCRIPT_PATH, "requirements.txt")
 
         command = f"pip install -r {requirements_path}"
-        if extra_requirements_path is not None:
-            command += f" -r {extra_requirements_path}"
+        if extra_requirements_path:
+            for req in extra_requirements_path:
+                command += f" -r {req}"
 
         res, err = run_command_in_venv(venv_path, command)
     
@@ -294,8 +295,8 @@ def parse_args(argv):
     )
 
     parser.add_argument(
-        "--req", dest="extra_requirements", required=False,
-        help="extra requiriments.txt file"
+        "--req", dest="extra_requirements", required=False, nargs="+",
+        help="One or more extra requirements.txt files"
     )
 
     parser.add_argument(
