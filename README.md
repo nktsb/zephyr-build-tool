@@ -56,7 +56,6 @@ Prepare a settings.json file like:
 	"app_path": "app",
 
 	"venv_path": ".venv",
-	"dotenv_path": ".env",
 	"manifest_url": "https://github.com/nrfconnect/sdk-nrf",
 	"manifest_version": "v2.9.1",
 	"zephyr_env_path": ".zephyr_env",
@@ -98,7 +97,7 @@ Sample output:
 
 Arguments:
 
-* --env : Select environment components to prepare (all, venv-dotenv)
+* --env : Select environment components to prepare (dall, venv-dotenv, dotenv-only)
 * --set : Path to the JSON settings file
 * --run : Script to run inside the prepared environment
 * -- : Separator for script arguments

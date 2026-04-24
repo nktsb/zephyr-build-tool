@@ -120,8 +120,7 @@ def run_script_in_venv(venv_path,
         sys.exit(1)
 
 
-def ensure_venv(venv_path, extra_requirements_path=None):
-    venv_path = os.path.expanduser(venv_path)
+def ensure_venv(venv_path, extra_requirements_list=None):
     if not os.path.exists(venv_path):
         print(f"📦 Initializing Python virtual environment {venv_path}...\n")
         venv.create(venv_path, with_pip=True)
@@ -129,9 +128,10 @@ def ensure_venv(venv_path, extra_requirements_path=None):
         requirements_path = os.path.join(RUN_ENV_SCRIPT_PATH, "requirements.txt")
 
         command = f"pip install -r {requirements_path}"
-        if extra_requirements_path:
-            for req in extra_requirements_path:
-                command += f" -r {req}"
+
+        if extra_requirements_list:
+            for req in extra_requirements_list:
+                command += f" -r {os.path.expanduser(req)}"
 
         res, err = run_command_in_venv(venv_path, command)
     
@@ -155,8 +155,6 @@ def ensure_dotenv(company_name,
                   zephyr_boards_path,
                   build_path,
         ):
-
-    dotenv_path = os.path.expanduser(dotenv_path)
 
     abs_zephyr_boards = os.path.abspath(zephyr_boards_path)
     abs_app_path = os.path.abspath(app_path)
@@ -197,7 +195,6 @@ def ensure_zephyr_env(venv_path,
                       manifest_version,
                       manifest_path=None):
 
-    zephyr_env_path = os.path.expanduser(zephyr_env_path)
     if not os.path.exists(zephyr_env_path):
         print("📦 Initializing Zephyr virtual environment...\n")
 
@@ -289,7 +286,7 @@ def parse_args(argv):
     parser.add_argument(
         "--env",
         nargs="+",
-        choices=["venv-dotenv", "all"],
+        choices=["venv-dotenv", "all", "dotenv-only"],
         help="Environment setup components"
     )
 
@@ -315,8 +312,15 @@ def parse_args(argv):
 
     args = parser.parse_args(argv)
 
-    args.all = "all" in (args.env or [])
-    args.venv_dotenv = "venv-dotenv" in (args.env or []) or args.all == True
+    env = set(args.env or [])
+
+    if len(env) > 1:
+        print("❌ Only one env mode can be selected: all | venv-dotenv | dotenv-only")
+        sys.exit(1)
+
+    args.all = "all" in env
+    args.venv_dotenv = "venv-dotenv" in env
+    args.dotenv_only = "dotenv-only" in env
 
     if '--' in args.script_args:
         args.script_args.remove('--')
@@ -341,28 +345,30 @@ if __name__ == "__main__":
 
     settings_json = load_settings(args.settings_json)
 
+    dotenv_path = ".env"
+
     company_name = settings_json["company_name"]
     project_name = settings_json["project_name"]
     
-    app_path = settings_json["app_path"]
+    app_path = os.path.expanduser(settings_json["app_path"])
 
-    venv_path = settings_json["venv_path"]
-    extra_requirements_path = args.extra_requirements
-    dotenv_path = settings_json["dotenv_path"]
+    venv_path = os.path.expanduser(settings_json["venv_path"])
+    zephyr_env_path = os.path.expanduser(settings_json["zephyr_env_path"])
 
-    zephyr_env_path = settings_json["zephyr_env_path"]
+    extra_requirements_list = args.extra_requirements
+    zephyr_boards_path = os.path.expanduser(settings_json["zephyr_boards_path"])
+
+    manifest_path = settings_json.get("manifest_path") or None
+    if manifest_path:
+        manifest_path = os.path.expanduser(manifest_path)
+
+    build_path = os.path.expanduser(settings_json["build_path"])
+
     zephyr_sdk_verison = settings_json["zephyr_sdk_version"]
-    zephyr_boards_path = settings_json["zephyr_boards_path"]
     manifest_version = settings_json.get("manifest_version") or None
     manifest_url = settings_json.get("manifest_url") or None
-    manifest_path = settings_json.get("manifest_path") or None
 
-    build_path = settings_json["build_path"]
-
-    # STEP 1: create/check .venv
-    ensure_venv(venv_path, extra_requirements_path)
-
-    ## STEP 2: create/check .env
+    ## STEP 1: create/check .env
     ensure_dotenv(company_name,
                   project_name, 
                   dotenv_path,
@@ -371,6 +377,10 @@ if __name__ == "__main__":
                   app_path,
                   zephyr_boards_path,
                   build_path)
+
+    # STEP 2: create/check .venv
+    if args.all or args.venv_dotenv:
+        ensure_venv(venv_path, extra_requirements_list)
 
     ## STEP 4: check dependencies
     if args.all:
