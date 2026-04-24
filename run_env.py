@@ -121,6 +121,7 @@ def run_script_in_venv(venv_path,
 
 
 def ensure_venv(venv_path, extra_requirements_path=None):
+    venv_path = os.path.expanduser(venv_path)
     if not os.path.exists(venv_path):
         print(f"📦 Initializing Python virtual environment {venv_path}...\n")
         venv.create(venv_path, with_pip=True)
@@ -154,6 +155,8 @@ def ensure_dotenv(company_name,
                   zephyr_boards_path,
                   build_path,
         ):
+
+    dotenv_path = os.path.expanduser(dotenv_path)
 
     abs_zephyr_boards = os.path.abspath(zephyr_boards_path)
     abs_app_path = os.path.abspath(app_path)
@@ -194,6 +197,7 @@ def ensure_zephyr_env(venv_path,
                       manifest_version,
                       manifest_path=None):
 
+    zephyr_env_path = os.path.expanduser(zephyr_env_path)
     if not os.path.exists(zephyr_env_path):
         print("📦 Initializing Zephyr virtual environment...\n")
 
