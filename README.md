@@ -66,8 +66,9 @@ Prepare a settings.json file like:
 }
 ```
 
-* You can use `"manifest_path"` with path ot local `west.yml` file instead of
-`"manifest_url"` and `"manifest_version"`
+* You can use `"manifest_path"` with path to local `west.yml` file instead of
+`"manifest_url"` and `"manifest_version"`.
+* Note: It works only with 4.2.0+ Zephyr versions *
 
 * extra_requirements_path: Allows you to install additional Python modules into your virtual environment.
 
