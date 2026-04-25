@@ -209,8 +209,7 @@ def ensure_zephyr_env(venv_path,
             command = f"mkdir {zephyr_env_path} && cd {zephyr_env_path} && " \
                       f"mkdir {manifest_repo_path} && " \
                       f"cp {manifest_path} {new_manifest_path} &&" \
-                      f"west init -l --mf {new_manifest_path} " \
-                      f"{manifest_repo_path} && " \
+                      f"west init -l {manifest_repo_path} && " \
                       f"west update"
         else:
             manifest_arg = f"-m {manifest_url} --mr {manifest_version}"
