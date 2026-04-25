@@ -193,7 +193,8 @@ def ensure_zephyr_env(venv_path,
                       zephyr_env_path,
                       manifest_url,
                       manifest_version,
-                      manifest_path=None):
+                      manifest_path=None,
+                      manifest_repo_name="manifest_repo"):
 
     if not os.path.exists(zephyr_env_path):
         print("📦 Initializing Zephyr virtual environment...\n")
@@ -202,14 +203,22 @@ def ensure_zephyr_env(venv_path,
         env.pop("ZEPHYR_BASE", None)
 
         if manifest_path:
-            manifest_arg = f"-l --mf {manifest_path} {os.path.join(zephyr_env_path, ".west")}"
+            manifest_repo_path = os.path.join(zephyr_env_path, manifest_repo_name)
+            new_manifest_path = os.path.join(manifest_repo_path, "west.yml")
+
+            command = f"mkdir {zephyr_env_path} && cd {zephyr_env_path} && " \
+                      f"mkdir {manifest_repo_path} && " \
+                      f"cp {manifest_path} {new_manifest_path} &&" \
+                      f"west init -l --mf {new_manifest_path} " \
+                      f"{manifest_repo_path} && " \
+                      f"west update"
         else:
             manifest_arg = f"-m {manifest_url} --mr {manifest_version}"
+            command = f"mkdir {zephyr_env_path} && cd {zephyr_env_path} && " \
+                    f"west init {manifest_arg} " \
+                    f"&& west update"
 
-        command = f"mkdir {zephyr_env_path} && cd {zephyr_env_path} && " \
-                  f"west init {manifest_arg} " \
-                  f"&& west update"
-
+        print (f"Running west command: {command}")
         res, err = run_command_in_venv(venv_path, command)
         
         if err:
@@ -393,7 +402,8 @@ if __name__ == "__main__":
                           zephyr_env_path,
                           manifest_url,
                           manifest_version,
-                          manifest_path)
+                          manifest_path,
+                          project_name)
     else:
         zephyr_env_path = None
 
