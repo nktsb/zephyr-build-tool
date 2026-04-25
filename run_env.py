@@ -202,14 +202,15 @@ def ensure_zephyr_env(venv_path,
         env.pop("ZEPHYR_BASE", None)
 
         if manifest_path:
-            manifest_arg = f"--mf {manifest_path}"
+            manifest_arg = f"-l --mf {manifest_path} {os.path.join(zephyr_env_path, ".west")}"
         else:
             manifest_arg = f"-m {manifest_url} --mr {manifest_version}"
 
-        res, err = run_command_in_venv(venv_path, f"mkdir {zephyr_env_path} && "
-                f"cd {zephyr_env_path} && "
-                f"west init {manifest_arg} "
-                f"&& west update", env=env)
+        command = f"mkdir {zephyr_env_path} && cd {zephyr_env_path} && " \
+                  f"west init {manifest_arg} " \
+                  f"&& west update"
+
+        res, err = run_command_in_venv(venv_path, command)
         
         if err:
             shutil.rmtree(zephyr_env_path)
@@ -360,7 +361,7 @@ if __name__ == "__main__":
 
     manifest_path = settings_json.get("manifest_path") or None
     if manifest_path:
-        manifest_path = os.path.expanduser(manifest_path)
+        manifest_path = os.path.abspath(os.path.expanduser(manifest_path))
 
     build_path = os.path.expanduser(settings_json["build_path"])
 
