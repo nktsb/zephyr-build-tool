@@ -230,10 +230,16 @@ def ensure_zephyr_env(venv_path,
         print(f"✅ Zephyr virtual envirornment check")
 
 def check_zephyr_sdk(venv_path, 
-                     zephyr_env_path):
+                     zephyr_env_path,
+                     env=None):
 
-    res, err = run_command_in_venv(venv_path, f"west sdk list",
-        zephyr_env_path, return_out=True)
+    res, err = run_command_in_venv(
+        venv_path,
+        "west sdk list",
+        zephyr_env_path,
+        env=env,
+        return_out=True,
+    )
 
     if err:
         return False
@@ -263,7 +269,14 @@ def ensure_toolchain(venv_path,
                      zephyr_env_path,
                      sdk_version):
 
-    sdk_path = check_zephyr_sdk(venv_path, zephyr_env_path)
+    env = os.environ.copy()
+    env["ZEPHYR_TOOLCHAIN_VARIANT"] = "zephyr"
+
+    sdk_path = check_zephyr_sdk(
+        venv_path,
+        zephyr_env_path,
+        env=env,
+    )
 
     if sdk_path:
         print(f"✅ Toolchain check: {sdk_path}")
@@ -271,9 +284,15 @@ def ensure_toolchain(venv_path,
 
     print("📦 Initializing toolchain...\n")
 
-    res, err = run_command_in_venv(venv_path, f"west sdk install " +
-            f"--toolchains arm-zephyr-eabi --no-hosttools --version {sdk_version}", 
-            zephyr_env_path)
+    res, err = run_command_in_venv(
+        venv_path,
+        f"west sdk install "
+        f"--toolchains arm-zephyr-eabi "
+        f"--no-hosttools "
+        f"--version {sdk_version}",
+        zephyr_env_path,
+        env=env,
+    )
 
     if err:
         print("❌ Toolchain setup failed\n")
