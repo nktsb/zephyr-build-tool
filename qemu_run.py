@@ -1,12 +1,17 @@
+import os
+from dotenv import load_dotenv
 import subprocess
 import time
 import signal
 import sys
 
 def run_west_qemu_with_signal_and_check(timeout=60):
+    load_dotenv()
     west_build_command = [
         "west",
         "build",
+        "--build-dir",
+        os.environ.get("BUILD_DIR", "build"),
         "-t",
         "run",
     ]

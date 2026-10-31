@@ -243,7 +243,7 @@ def ensure_zephyr_env(venv_path,
 
 def check_zephyr_sdk(venv_path, 
                      zephyr_env_path,
-                     env=None):
+                     env=None, sdk_version=None):
 
     res, err = run_command_in_venv(
         venv_path,
@@ -263,17 +263,26 @@ def check_zephyr_sdk(venv_path,
     for line in lines:
         stripped = line.strip()
         if stripped.startswith("path:"):
-            sdk_path = line.split("path:")[1].strip()
-            continue
-        if stripped == "installed-toolchains:":
-            in_installed_section = True
-            continue
-        if in_installed_section:
-            if "arm-zephyr-eabi" in stripped:
-                return sdk_path
-        if stripped == "available-toolchains:":
+            sdk_path = stripped.split(":", 1)[1].strip()
             in_installed_section = False
             continue
+        if stripped.endswith(":"):
+            in_installed_section = stripped in (
+                "installed-toolchains:",
+                "gnu-installed-toolchains:",
+            )
+            continue
+        if in_installed_section:
+            if stripped == "- arm-zephyr-eabi":
+                if sdk_path and sdk_version:
+                    version_file = os.path.join(sdk_path, "sdk_version")
+                    try:
+                        with open(version_file, encoding="utf-8") as sdk_file:
+                            if sdk_file.read().strip() != sdk_version:
+                                continue
+                    except OSError:
+                        continue
+                return sdk_path
 
     return None
 
@@ -288,6 +297,7 @@ def ensure_toolchain(venv_path,
         venv_path,
         zephyr_env_path,
         env=env,
+        sdk_version=sdk_version,
     )
 
     if sdk_path:
@@ -299,7 +309,7 @@ def ensure_toolchain(venv_path,
     res, err = run_command_in_venv(
         venv_path,
         f"west sdk install "
-        f"--toolchains arm-zephyr-eabi "
+        f"--gnu-toolchains arm-zephyr-eabi "
         f"--no-hosttools "
         f"--version {sdk_version}",
         zephyr_env_path,
